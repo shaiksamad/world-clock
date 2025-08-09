@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>World Clock Dashboard</title>
+  <style>
+    :root {
+      --day-bg: rgba(255, 255, 255, 0.15);
+      --night-bg: rgba(0, 0, 0, 0.3);
+    }
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #1a2a3a, #0f1724);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      backdrop-filter: blur(15px);
+    }
+    .main-clock {
+      text-align: center;
+      margin: 20px 0;
+      position: relative;
+    }
+    .time-large {
+      font-size: 72px;
+      font-weight: 600;
+      letter-spacing: 2px;
+    }
+    .local-info {
+      font-size: 18px;
+      opacity: 0.85;
+    }
+    .toggle-format {
+      position: absolute;
+      top: 0;
+      right: 0;
+      font-size: 14px;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.3s;
+    }
+    .toggle-format:hover {
+      opacity: 1;
+    }
+    .bottom-section {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      padding: 10px;
+      gap: 20px;
+    }
+    .section {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .clock-card {
+      padding: 10px;
+      border-radius: 16px;
+      min-width: 120px;
+      text-align: center;
+      font-size: 14px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      font-weight: 500;
+    }
+    .day {
+      background-color: var(--day-bg);
+    }
+    .night {
+      background-color: var(--night-bg);
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="main-clock">
+    <div id="toggleFormat" class="toggle-format">24</div>
+    <div class="time-large" id="localTime">--:--:--</div>
+    <div class="local-info" id="localDate"></div>
+  </div>
+
+  <div class="bottom-section">
+    <div class="section" id="americas"></div>
+    <div class="section" id="europe"></div>
+    <div class="section" id="asia"></div>
+  </div>
+
+  <script>
+    const MARKETS = {
+      americas: [
+        { code: "US", tz: "America/New_York" },
+        { code: "CA", tz: "America/Toronto" },
+        { code: "BR", tz: "America/Sao_Paulo" }
+      ],
+      europe: [
+        { code: "UK", tz: "Europe/London" },
+        { code: "DE", tz: "Europe/Berlin" },
+        { code: "PL", tz: "Europe/Warsaw" },
+        { code: "CZ", tz: "Europe/Prague" },
+        { code: "LU", tz: "Europe/Luxembourg" },
+        { code: "SK", tz: "Europe/Bratislava" },
+        { code: "HU", tz: "Europe/Budapest" },
+        { code: "AT", tz: "Europe/Vienna" },
+        { code: "BE", tz: "Europe/Brussels" },
+        { code: "FR", tz: "Europe/Paris" },
+        { code: "TR", tz: "Europe/Istanbul" },
+        { code: "NL", tz: "Europe/Amsterdam" },
+        { code: "CH", tz: "Europe/Zurich" }
+      ],
+      asia: [
+        { code: "IN", tz: "Asia/Kolkata" },
+        { code: "MY", tz: "Asia/Kuala_Lumpur" },
+        { code: "SG", tz: "Asia/Singapore" },
+        { code: "TH", tz: "Asia/Bangkok" },
+        { code: "PH", tz: "Asia/Manila" },
+        { code: "ID", tz: "Asia/Jakarta" },
+        { code: "OM", tz: "Asia/Muscat" }
+      ]
+    };
+
+    let use24Hour = true;
+
+    document.getElementById('toggleFormat').addEventListener('click', () => {
+      use24Hour = !use24Hour;
+      document.getElementById('toggleFormat').textContent = use24Hour ? '24' : '12';
+    });
+
+    function uniqueTimeZones(zones) {
+      const seen = {};
+      const unique = [];
+      zones.forEach(({ code, tz }) => {
+        const now = new Date();
+        const timeStr = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: !use24Hour }).format(now);
+        if (seen[timeStr]) {
+          seen[timeStr].codes.push(code);
+        } else {
+          seen[timeStr] = { tz, codes: [code] };
+          unique.push(seen[timeStr]);
+        }
+      });
+      return unique;
+    }
+
+    function tzOffset(tz) {
+      const now = new Date();
+      const options = { timeZone: tz, timeZoneName: 'shortOffset' };
+      return new Intl.DateTimeFormat('en-US', options).formatToParts(now).find(p => p.type === 'timeZoneName').value.replace('GMT', '').trim();
+    }
+
+    function renderSection(sectionId, zones) {
+      const container = document.getElementById(sectionId);
+      container.innerHTML = '';
+      uniqueTimeZones(zones).forEach(item => {
+        if (item.tz === Intl.DateTimeFormat().resolvedOptions().timeZone) return; // Skip local timezone
+        const hour = new Date().toLocaleString('en-GB', { timeZone: item.tz, hour: '2-digit', hour12: false });
+        const isDay = hour >= 6 && hour < 18;
+        const dateStr = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }).format(new Date());
+        const timeStr = new Intl.DateTimeFormat('en-GB', { timeZone: item.tz, hour: '2-digit', minute: '2-digit', hour12: !use24Hour }).format(new Date());
+        const div = document.createElement('div');
+        div.className = `clock-card ${isDay ? 'day' : 'night'}`;
+        div.innerHTML = `<strong>${item.codes.join(' / ')}</strong><br>${timeStr} (UTC${tzOffset(item.tz)})<br><small>${dateStr}</small>`;
+        container.appendChild(div);
+      });
+    }
+
+    function updateClocks() {
+      const now = new Date();
+      const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      document.getElementById('localTime').textContent = now.toLocaleTimeString('en-GB', { hour12: !use24Hour });
+      document.getElementById('localDate').textContent = `${now.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} (${localTz})`;
+      renderSection('americas', MARKETS.americas);
+      renderSection('europe', MARKETS.europe);
+      renderSection('asia', MARKETS.asia);
+    }
+
+    setInterval(updateClocks, 1000);
+    updateClocks();
+
+    if ('wakeLock' in navigator) {
+      let lock;
+      const requestWakeLock = async () => {
+        try { lock = await navigator.wakeLock.request('screen'); } catch (err) { console.log(err); }
+      };
+      requestWakeLock();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') requestWakeLock();
+      });
+    }
+  </script>
+</body>
+</html>
