@@ -163,7 +163,7 @@
         if (item.tz === Intl.DateTimeFormat().resolvedOptions().timeZone) return; // Skip local timezone
         const hour = new Date().toLocaleString('en-GB', { timeZone: item.tz, hour: '2-digit', hour12: false });
         const isDay = hour >= 6 && hour < 18;
-        const dateStr = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }).format(new Date());
+        const dateStr = new Intl.DateTimeFormat('en-GB', { timeZone: item.tz, weekday: 'short', day: '2-digit', month: 'short' }).format(new Date());
         const timeStr = new Intl.DateTimeFormat('en-GB', { timeZone: item.tz, hour: '2-digit', minute: '2-digit', hour12: !use24Hour }).format(new Date());
         const div = document.createElement('div');
         div.className = `clock-card ${isDay ? 'day' : 'night'}`;
